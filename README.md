@@ -46,11 +46,23 @@ I also configured a dedicated **Security Group** for policy targeting, keeping t
 
 **The real-world constraint I hit immediately:** Azure's free tier doesn't give you Conditional Access. That's a Premium P2 feature. Rather than parking the project, I documented the roadblock and pivoted — which is exactly what engineers do in production when the budget doesn't match the security roadmap.
 
-| Screenshot | What It Shows |
-|---|---|
-| `01_entra_user_provisioning.png` | Creating the Admin and Standard user accounts |
-| `02_security_group_configuration.png` | Setting up the test group for policy targeting |
-| `03_licensing_constraint_documentation.png` | The tenant creation roadblock — documented, not hidden |
+---
+
+**Creating the Admin and Standard user accounts**
+
+![01_entra_user_provisioning](images/01_entra_user_provisioning.png)
+
+---
+
+**Setting up the Security Group for policy targeting**
+
+![02_security_group_configuration](images/02_security_group_configuration.png)
+
+---
+
+**The tenant creation roadblock — documented, not hidden**
+
+![03_licensing_constraint_documentation](images/03_licensing_constraint_documentation.png)
 
 ---
 
@@ -62,11 +74,23 @@ With the environment provisioned, I moved to hardening. This is where the free-t
 
 **Verification:** Before moving to the attack phase, I confirmed the hardening was effective. Attempting a login without completing MFA registration returned a mandatory "More Information Required" block. The perimeter held — for now.
 
-| Screenshot | What It Shows |
-|---|---|
-| `04_premium_feature_restriction.png` | Conditional Access locked behind P2 — the licensing wall |
-| `05_manual_mfa_enforcement.png` | Activating Per-User MFA as a free-tier bypass |
-| `06_mfa_login_verification.png` | Verifying the "More Information Required" block is active |
+---
+
+**Conditional Access locked behind P2 — the licensing wall**
+
+![04_premium_feature_restriction](images/04_premium_feature_restriction.png)
+
+---
+
+**Activating Per-User MFA as a free-tier bypass**
+
+![05_manual_mfa_enforcement](images/05_manual_mfa_enforcement.png)
+
+---
+
+**Verifying the "More Information Required" block is active**
+
+![06_mfa_login_verification](images/06_mfa_login_verification.png)
 
 ---
 
@@ -87,11 +111,23 @@ Performed an administrative password reset from inside the account. The legitima
 **Step 3 — Full Account Takeover (ATO)**
 Complete. The victim has no path back in without admin intervention. This is a documented real-world technique used in Business Email Compromise (BEC) campaigns targeting Microsoft 365 environments.
 
-| Screenshot | What It Shows |
-|---|---|
-| `07_attacker_mfa_registration.png` | Initiating the hijack — attacker's view of the MFA setup screen |
-| `08_unauthorized_mfa_method_added.png` | Attacker's device successfully linked as the trusted MFA method |
-| `09_persistence_via_password_reset.png` | Attacker resetting the password to lock the legitimate user out |
+---
+
+**Initiating the hijack — attacker's view of the MFA setup screen**
+
+![07_attacker_mfa_registration](images/07_attacker_mfa_registration.png)
+
+---
+
+**Attacker's device successfully linked as the trusted MFA method**
+
+![08_unauthorized_mfa_method_added](images/08_unauthorized_mfa_method_added.png)
+
+---
+
+**Attacker resetting the password to lock the legitimate user out**
+
+![09_persistence_via_password_reset](images/09_persistence_via_password_reset.png)
 
 ---
 
@@ -110,10 +146,17 @@ Switching hats. I'm now the SOC Analyst who just got the ticket: a user is locke
 
 The Sign-in log told me *who* and *where*. The Audit log told me *what*. Together, they rebuilt the entire attack timeline.
 
-| Screenshot | What It Shows |
-|---|---|
-| `10_impossible_travel_vpn_log.png` | The smoking gun — Sign-in log showing Seattle, WA login from an AU account |
-| `11_authentication_metadata_analysis.png` | Confirming the rogue MFA registration in the authentication metadata |
+---
+
+**The smoking gun — Sign-in log showing Seattle, WA login from an AU account**
+
+![10_impossible_travel_vpn_log](images/10_impossible_travel_vpn_log.png)
+
+---
+
+**Confirming the rogue MFA registration in the authentication metadata**
+
+![11_authentication_metadata_analysis](images/11_authentication_metadata_analysis.png)
 
 ---
 
@@ -133,13 +176,35 @@ Performed a final administrative password reset to hand control back to the legi
 **Document — Audit Trail Verification**
 Confirmed every remediation action appeared correctly in the Audit Logs with accurate timestamps. In a real incident, this is what you hand to your CISO, legal counsel, or a regulator. If it isn't in the logs, it didn't happen.
 
-| Screenshot | What It Shows |
-|---|---|
-| `12_global_session_revocation.png` | Admin revoking all active sessions — attacker evicted |
-| `13_rogue_mfa_method_deletion.png` | Removing the attacker's phone from the trusted authentication methods |
-| `14_administrative_identity_recovery.png` | Performing the final admin password reset |
-| `15_remediation_success_confirmation.png` | Password Reset Successful — account restored |
-| `16_final_audit_trail_verification.png` | Audit log showing every admin action taken during the incident |
+---
+
+**Admin revoking all active sessions — attacker evicted**
+
+![12_global_session_revocation](images/12_global_session_revocation.png)
+
+---
+
+**Removing the attacker's phone from the trusted authentication methods**
+
+![13_rogue_mfa_method_deletion](images/13_rogue_mfa_method_deletion.png)
+
+---
+
+**Performing the final admin password reset**
+
+![14_administrative_identity_recovery](images/14_administrative_identity_recovery.png)
+
+---
+
+**Password Reset Successful — account restored**
+
+![15_remediation_success_confirmation](images/15_remediation_success_confirmation.png)
+
+---
+
+**Audit log showing every admin action taken during the incident**
+
+![16_final_audit_trail_verification](images/16_final_audit_trail_verification.png)
 
 ---
 
@@ -179,3 +244,47 @@ This lab deliberately ends with manual hunting and manual response. The natural 
 ---
 
 ## Repository Structure
+
+```
+azure-identity-security-lab/
+├── images/
+│   ├── 01_entra_user_provisioning.png
+│   ├── 02_security_group_configuration.png
+│   ├── 03_licensing_constraint_documentation.png
+│   ├── 04_premium_feature_restriction.png
+│   ├── 05_manual_mfa_enforcement.png
+│   ├── 06_mfa_login_verification.png
+│   ├── 07_attacker_mfa_registration.png
+│   ├── 08_unauthorized_mfa_method_added.png
+│   ├── 09_persistence_via_password_reset.png
+│   ├── 10_impossible_travel_vpn_log.png
+│   ├── 11_authentication_metadata_analysis.png
+│   ├── 12_global_session_revocation.png
+│   ├── 13_rogue_mfa_method_deletion.png
+│   ├── 14_administrative_identity_recovery.png
+│   ├── 15_remediation_success_confirmation.png
+│   └── 16_final_audit_trail_verification.png
+├── documentation/
+│   └── incident-response-log.md
+└── README.md
+```
+
+---
+
+## How to Read This Project
+
+**If you're a hiring manager:** The phase structure above tells the full story. Start at Phase 3 (the attack) if you want to jump straight to the most interesting part — every step is screenshot-documented.
+
+**If you're a fellow security professional:** Clone the repo, read the documentation folder for the granular technical steps, and feel free to open an issue if you want to discuss methodology.
+
+**If you're building your own lab:** The Phase 1 & 2 setup is deliberately reproducible on a free Azure tenant. The only cost is the VPN used in Phase 3 for geographic spoofing.
+
+---
+
+## Connect
+
+**LinkedIn:** [linkedin.com/in/shankarbaral1](https://linkedin.com/in/shankarbaral1)  
+**GitHub:** [github.com/shank078](https://github.com/shank078)
+
+*Open to Junior SOC Analyst and Advanced IT Infrastructure roles in Australia.*
+
