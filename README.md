@@ -1,13 +1,32 @@
 # 🔐 Azure Identity Security & Incident Response Lab
 ### *A full Red Team compromise and Blue Team recovery — built, broken, and fixed by one person.*
 
-![Azure](https://img.shields.io/badge/Microsoft_Azure-0089D6?style=for-the-badge&logo=microsoft-azure&logoColor=white)
-![Entra ID](https://img.shields.io/badge/Entra_ID-00BCF2?style=for-the-badge&logo=microsoft&logoColor=white)
-![Security](https://img.shields.io/badge/Blue_Team-1B3A5C?style=for-the-badge&logo=shield&logoColor=white)
+<p align="left">
+  <img src="https://img.shields.io/badge/Microsoft_Azure-0089D6?style=for-the-badge&logo=microsoftazure&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Entra_ID-00BCF2?style=for-the-badge&logo=microsoft&logoColor=white"/>
+  <img src="https://img.shields.io/badge/MFA_Bypass-Red_Team-E63946?style=for-the-badge&logo=shield&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Incident_Response-Blue_Team-1B3A5C?style=for-the-badge&logo=shield&logoColor=white"/>
+  <img src="https://img.shields.io/badge/MITRE_ATT%26CK-T1556.006-E63946?style=for-the-badge&logo=shield&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Zero_Malware-Zero_Exploits-green?style=for-the-badge"/>
+</p>
 
 ---
 
-## What This Project Is (And Why I Built It)
+## ⚡ TL;DR — What Happened
+
+| Phase | Action | Result |
+|-------|--------|--------|
+| **Setup** | Provisioned Entra ID lab with Admin + Standard user personas | Clean identity baseline established |
+| **Hardening** | Deployed Per-User MFA as free-tier Conditional Access alternative | MFA block confirmed active |
+| **Attack** | Exploited MFA *enabled* vs *enforced* gap — hijacked MFA, reset password | Full account takeover. Zero malware. Zero exploits. |
+| **Detection** | Pulled Sign-in Logs + Audit Logs | Impossible travel detected (Australia → Seattle). Attack timeline rebuilt. |
+| **Response** | Contain → Eradicate → Recover → Document | Session revoked. Rogue MFA removed. Account restored. Audit trail verified. |
+
+> **The attack required zero malware, zero exploits, and zero technical sophistication. Just timing, stolen credentials, and a misconfigured control that millions of organisations have right now.**
+
+---
+
+## 📖 What This Project Is (And Why I Built It)
 
 Most cloud security content teaches you how to *configure* things. This project is about what happens when configuration alone isn't enough.
 
@@ -17,76 +36,63 @@ This isn't a CTF walkthrough. Every decision mirrors a real-world scenario: budg
 
 ---
 
-## Technical Stack
+## 🛠️ Technical Stack
 
 | Layer | Technology |
 |---|---|
-| Cloud Provider | Microsoft Azure |
-| Identity Platform | Microsoft Entra ID (formerly Azure AD) |
-| Security Controls | Multi-Factor Authentication (MFA), Security Groups, RBAC |
-| Monitoring | Entra ID Sign-in Logs, Audit Logs, Identity Protection |
-| Attack Tooling | VPN (Geographic Spoofing), Private Session Hijacking |
+| **Cloud Provider** | Microsoft Azure |
+| **Identity Platform** | Microsoft Entra ID (formerly Azure AD) |
+| **Security Controls** | Multi-Factor Authentication (MFA), Security Groups, RBAC |
+| **Monitoring** | Entra ID Sign-in Logs, Audit Logs, Identity Protection |
+| **Attack Technique** | VPN Geographic Spoofing, MFA Registration Hijacking |
+| **MITRE ATT&CK** | T1556.006 (Modify Authentication Process: MFA), T1078 (Valid Accounts), T1621 (MFA Request Generation) |
 
 ---
 
-## The Full Story: A 15-Day Security Sprint
-
-This lab runs in five phases. Each phase builds directly on the last.
+## 🗺️ The Full Story: A 5-Phase Security Sprint
 
 ---
 
-### 🏗️ Phase 1 — Environment Setup
+### 🏗️ Phase 1 — Environment Setup `MITRE: T1136 — Create Account`
 
-Every secure environment starts with a solid identity foundation. I provisioned a dedicated lab directory and established two distinct user personas from day one:
+Every secure environment starts with a solid identity foundation. I provisioned a dedicated lab directory and established two distinct user personas:
 
 - **Admin Account** — elevated privileges, management tasks only
 - **Standard User** — least-privilege employee account used as the attack target
 
-I also configured a dedicated **Security Group** for policy targeting, keeping the blast radius of any changes controlled and auditable from the start.
+A dedicated **Security Group** was configured for policy targeting, keeping the blast radius of any changes controlled and auditable from the start.
 
-**The real-world constraint I hit immediately:** Azure's free tier doesn't give you Conditional Access. That's a Premium P2 feature. Rather than parking the project, I documented the roadblock and pivoted — which is exactly what engineers do in production when the budget doesn't match the security roadmap.
-
----
+> **Real-world constraint hit immediately:** Azure's free tier doesn't include Conditional Access — that's a Premium P2 feature. Rather than parking the project, I documented the roadblock and pivoted to Per-User MFA. This is exactly what engineers do in production when the budget doesn't match the security roadmap.
 
 **Creating the Admin and Standard user accounts**
 
 ![01_entra_user_provisioning](images/01_entra_user_provisioning.png)
 
----
-
 **Setting up the Security Group for policy targeting**
 
 ![02_security_group_configuration](images/02_security_group_configuration.png)
 
----
-
-**The tenant creation roadblock — documented, not hidden**
+**The licensing constraint — documented, not hidden**
 
 ![03_licensing_constraint_documentation](images/03_licensing_constraint_documentation.png)
 
 ---
 
-### 🔒 Phase 2 — Identity Hardening
+### 🔒 Phase 2 — Identity Hardening `MITRE: T1556 — Modify Authentication Process`
 
-With the environment provisioned, I moved to hardening. This is where the free-tier constraint forced a real engineering decision.
+With the environment provisioned, I moved to hardening. The free-tier constraint forced a real engineering decision.
 
-**The "Free-Tier" Pivot:** Conditional Access — the gold standard for enforcing MFA policies — sat behind a P2 licence wall. So I implemented **Per-User MFA enforcement** instead. Not the ideal enterprise solution, but a legitimate, effective control using only the tools available. In a constrained environment, a good engineer works with what they have.
+**The Pivot:** Conditional Access — the gold standard for enforcing MFA policies — sat behind a P2 licence wall. I implemented **Per-User MFA enforcement** instead. Not the ideal enterprise solution, but a legitimate, effective control using only the tools available.
 
-**Verification:** Before moving to the attack phase, I confirmed the hardening was effective. Attempting a login without completing MFA registration returned a mandatory "More Information Required" block. The perimeter held — for now.
-
----
+**Verification:** Before moving to the attack phase, I confirmed hardening was effective — attempting login without completing MFA registration returned a mandatory "More Information Required" block. The perimeter held.
 
 **Conditional Access locked behind P2 — the licensing wall**
 
 ![04_premium_feature_restriction](images/04_premium_feature_restriction.png)
 
----
-
-**Activating Per-User MFA as a free-tier bypass**
+**Activating Per-User MFA as the free-tier alternative**
 
 ![05_manual_mfa_enforcement](images/05_manual_mfa_enforcement.png)
-
----
 
 **Verifying the "More Information Required" block is active**
 
@@ -94,65 +100,58 @@ With the environment provisioned, I moved to hardening. This is where the free-t
 
 ---
 
-### 💀 Phase 3 — The Compromise (Red Team)
+### 💀 Phase 3 — The Compromise (Red Team) `MITRE: T1078 — Valid Accounts | T1621 — MFA Request Generation`
 
-Here's what most organisations miss: **MFA *Enabled* is not the same as MFA *Enforced*.**
+Here's what most organisations miss: **MFA *Enabled* ≠ MFA *Enforced*.**
 
 When a user has MFA enabled but hasn't completed registration yet, there is a window. A small one — but an attacker who moves first wins.
 
-I acted as an insider threat with access to stolen credentials and exploited that exact gap:
-
 **Step 1 — MFA Hijack**
-Logged into the target account *before* the legitimate user registered their own device. Registered my authenticator as the primary MFA method. The account now trusted my device, not theirs.
+Logged into the target account *before* the legitimate user registered their own MFA device. Registered my authenticator as the primary MFA method. The account now trusts my device, not theirs.
 
 **Step 2 — Establishing Persistence**
-Performed an administrative password reset from inside the account. The legitimate user is now locked out completely — they can't log in, and they can't recover via MFA because the attacker controls that too.
+Performed an administrative password reset from inside the account. The legitimate user is now locked out completely — they can't log in, and they can't recover via MFA because the attacker controls that channel.
 
 **Step 3 — Full Account Takeover (ATO)**
-Complete. The victim has no path back in without admin intervention. This is a documented real-world technique used in Business Email Compromise (BEC) campaigns targeting Microsoft 365 environments.
-
----
+Complete. No path back in without admin intervention. This technique is actively used in Business Email Compromise (BEC) campaigns targeting Microsoft 365 environments globally.
 
 **Initiating the hijack — attacker's view of the MFA setup screen**
 
 ![07_attacker_mfa_registration](images/07_attacker_mfa_registration.png)
 
----
-
-**Attacker's device successfully linked as the trusted MFA method**
+**Attacker's device successfully registered as the trusted MFA method**
 
 ![08_unauthorized_mfa_method_added](images/08_unauthorized_mfa_method_added.png)
 
----
-
-**Attacker resetting the password to lock the legitimate user out**
+**Attacker resetting the password — legitimate user locked out**
 
 ![09_persistence_via_password_reset](images/09_persistence_via_password_reset.png)
 
 ---
 
-### 🔍 Phase 4 — Detection & Analysis (Blue Team)
+### 🔍 Phase 4 — Detection & Analysis (Blue Team) `MITRE: T1078.004 — Cloud Accounts`
 
-Switching hats. I'm now the SOC Analyst who just got the ticket: a user is locked out of their account and doesn't know why.
+Switching hats. The ticket just landed: a user is locked out of their account and doesn't know why.
 
-**Making it realistic:** The attack was conducted over a VPN exiting in **Seattle, WA**. My legitimate admin session was running from **Australia**. That geographic gap was intentional — it's precisely the kind of signal that Entra ID Sign-in Logs capture and that a trained analyst knows to chase.
+**Making it realistic:** The attack was conducted over a VPN exiting in **Seattle, WA**. My legitimate admin session was running from **Australia**. That geographic gap was intentional — it's precisely the kind of signal Sign-in Logs capture and that a trained analyst knows to chase.
 
-**The Investigation:**
+**The Investigation & Telemetry Breakdown:**
+I bypassed basic dashboard graphs and dug directly into the raw event properties to verify the compromise:
 
-1. Pulled the **Sign-in Logs** and filtered for the compromised account
-2. Identified an **Impossible Travel** scenario — the same account authenticated from Australia and Seattle within minutes of each other. Physically impossible without a VPN or a very fast plane.
-3. Pinned the exact **attacker IP address** and the precise timestamp of the rogue MFA registration
-4. Cross-referenced the **Audit Logs** — found the MFA device addition and the subsequent password reset
+- **UserAgent Analysis:** Isolated browser fingerprint shifts between the legitimate user and attacker sessions
+- **Cross-Log Correlation:** Reconstructed the timeline by pivoting from the anomaly in Sign-in Logs (identity) to the execution mechanism in Audit Logs (system changes)
 
-The Sign-in log told me *who* and *where*. The Audit log told me *what*. Together, they rebuilt the entire attack timeline.
+| Log Source | Critical Field Isolated | Forensic Value |
+|------------|------------------------|----------------|
+| **Sign-in Logs** | `Location` / `IP Address` | Confirmed physically impossible travel (AU → Seattle, WA) within minutes |
+| **Sign-in Logs** | `Authentication Details` | Showed MFA satisfied via newly added attacker-controlled method |
+| **Audit Logs** | `Activity: Update User` | Identified rogue MFA device added to authentication methods |
 
----
+> **The Sign-in log told me *who* and *where*. The Audit log told me *what*. Together, they rebuilt the entire attack timeline.**
 
 **The smoking gun — Sign-in log showing Seattle, WA login from an AU account**
 
 ![10_impossible_travel_vpn_log](images/10_impossible_travel_vpn_log.png)
-
----
 
 **Confirming the rogue MFA registration in the authentication metadata**
 
@@ -160,47 +159,37 @@ The Sign-in log told me *who* and *where*. The Audit log told me *what*. Togethe
 
 ---
 
-### 🛡️ Phase 5 — Incident Response & Recovery
+### 🛡️ Phase 5 — Incident Response & Recovery `NIST SP 800-61 r2 Alignment`
 
-Detection means nothing without a documented, repeatable response. I followed a standard IR workflow: **Contain → Eradicate → Recover → Document.**
+Detection means nothing without a documented, repeatable response.
 
-**Contain — Global Session Revocation**
-Immediately terminated every active session on the compromised account. The attacker was kicked out of all active portal sessions simultaneously — mid-session, no warning, no graceful exit.
+**🔴 Contain — Global Session Revocation**
+Immediately terminated every active session on the compromised account. The attacker was kicked out of all active portal sessions simultaneously — mid-session, no warning.
 
-**Eradicate — Rogue MFA Method Deletion**
-Removed the attacker's device from the account's authentication methods. The backdoor is gone.
+**🟠 Eradicate — Rogue MFA Method Deletion**
+Removed the attacker's device from the account's trusted authentication methods. Backdoor eliminated.
 
-**Recover — Identity Restoration**
-Performed a final administrative password reset to hand control back to the legitimate user with clean credentials.
+**🟢 Recover — Identity Restoration**
+Performed a final administrative password reset, returning clean credentials to the legitimate user.
 
-**Document — Audit Trail Verification**
-Confirmed every remediation action appeared correctly in the Audit Logs with accurate timestamps. In a real incident, this is what you hand to your CISO, legal counsel, or a regulator. If it isn't in the logs, it didn't happen.
-
----
+**📋 Document — Audit Trail Verification**
+Confirmed every remediation action appears in the Audit Logs with accurate timestamps. In a real incident, this is what you hand to your CISO, legal counsel, or a regulator. **If it isn't in the logs, it didn't happen.**
 
 **Admin revoking all active sessions — attacker evicted**
 
 ![12_global_session_revocation](images/12_global_session_revocation.png)
 
----
-
-**Removing the attacker's phone from the trusted authentication methods**
+**Removing the attacker's phone from trusted authentication methods**
 
 ![13_rogue_mfa_method_deletion](images/13_rogue_mfa_method_deletion.png)
 
----
-
-**Performing the final admin password reset**
+**Final admin password reset**
 
 ![14_administrative_identity_recovery](images/14_administrative_identity_recovery.png)
 
----
-
-**Password Reset Successful — account restored**
+**Password reset successful — account restored**
 
 ![15_remediation_success_confirmation](images/15_remediation_success_confirmation.png)
-
----
 
 **Audit log showing every admin action taken during the incident**
 
@@ -208,22 +197,28 @@ Confirmed every remediation action appeared correctly in the Audit Logs with acc
 
 ---
 
-## Key Findings & Lessons Learned
+## 🧠 Key Findings & Lessons Learned
 
 ### 1. The MFA Gap Is Real — And Widely Underestimated
 
-Organisations that enable MFA and consider the job done are leaving a window open. The attack in Phase 3 required zero malware, zero exploits, and zero technical sophistication. Just timing and stolen credentials.
+The attack in Phase 3 required zero malware, zero exploits, and zero technical sophistication. Just timing and stolen credentials. Organisations that enable MFA and consider the job done are leaving a window open.
 
-**The fix:** Enforce **Registration Campaigns** immediately upon account creation so users are pushed to register before an attacker can. Or use **Conditional Access with Trusted Locations** (P2) to block authentication from unrecognised regions entirely.
+**The fix:** Enforce **Registration Campaigns** immediately upon account creation so users register before an attacker can. Or use **Conditional Access with Trusted Locations** (P2) to block authentication from unrecognised regions entirely.
+
+---
 
 ### 2. Two Log Sources. One Complete Picture.
 
 Most analysts pull one log and stop there.
 
-- **Sign-in Logs** → Behavioural anomalies. Impossible travel, unfamiliar locations, repeated failures, new device fingerprints.
-- **Audit Logs** → Administrative actions. MFA method changes, password resets, role assignments, group membership changes.
+| Log Source | What It Tells You |
+|------------|-------------------|
+| **Sign-in Logs** | Behavioural anomalies — impossible travel, unfamiliar locations, new device fingerprints |
+| **Audit Logs** | Administrative actions — MFA method changes, password resets, role assignments, group changes |
 
 You need both to reconstruct a full attack timeline. Either one alone leaves gaps a good attacker can hide in.
+
+---
 
 ### 3. A Constrained Environment Is Not a Defenceless One
 
@@ -231,19 +226,20 @@ Premium licences unlock powerful automation. But Per-User MFA, Sign-in Logs, and
 
 ---
 
-## What's Next
+## 🔮 What's Next
 
 This lab deliberately ends with manual hunting and manual response. The natural next iteration is automation:
 
 - **Integrate Microsoft Sentinel** — replace manual log review with automated analytic rules that fire on impossible travel and MFA registration anomalies
 - **Build KQL Watchlists** — flag high-risk IP ranges and known VPN exit nodes automatically
-- **Automate Containment via Playbooks** — trigger Global Session Revocation the moment an anomaly is detected, cutting attacker dwell time from hours to seconds
+- **Automate Containment via Logic Apps** — trigger Global Session Revocation the moment an anomaly is detected, cutting attacker dwell time from hours to seconds
+- **🤖 Pilot AI-Driven Orchestration** — use **IBM watsonx Orchestrate** to build an autonomous agent that catches an Impossible Travel event, queries threat intelligence APIs to verify if the source IP is a known VPN exit node, and routes a high-priority eviction command if confirmed
 
-*(The foundation for this is already live — see my [Azure Sentinel Honeypot & SIEM project](https://github.com/shank078/azure-sentinel-honeypot-siem))*
+*The Sentinel foundation is already live — see the [Dual SIEM Detection Lab](https://github.com/shank078/Dual-SIEM-Detection-Lab) and [Azure Sentinel Honeypot SIEM](https://github.com/shank078/azure-sentinel-honeypot-siem)*
 
 ---
 
-## Repository Structure
+## 📁 Repository Structure
 
 ```
 azure-identity-security-lab/
@@ -271,20 +267,27 @@ azure-identity-security-lab/
 
 ---
 
-## How to Read This Project
+## 🔗 Related Projects
 
-**If you're a hiring manager:** The phase structure above tells the full story. Start at Phase 3 (the attack) if you want to jump straight to the most interesting part — every step is screenshot-documented.
-
-**If you're a fellow security professional:** Clone the repo, read the documentation folder for the granular technical steps, and feel free to open an issue if you want to discuss methodology.
-
-**If you're building your own lab:** The Phase 1 & 2 setup is deliberately reproducible on a free Azure tenant. The only cost is the VPN used in Phase 3 for geographic spoofing.
+| Project | Description |
+|---------|-------------|
+| [Dual SIEM Detection Lab](https://github.com/shank078/Dual-SIEM-Detection-Lab) | 5 MITRE-mapped detections across Sentinel + Splunk on live attacker traffic |
+| [Azure Sentinel Honeypot SIEM](https://github.com/shank078/azure-sentinel-honeypot-siem) | 1,400+ real brute-force attempts captured and mapped globally |
+| [SOAR Pipeline — Sentinel to Jira](https://github.com/shank078/azure-sentinel-jira-soar-pipeline) | Zero-touch automated incident ticketing |
 
 ---
 
-## Connect
+## 👤 About the Author
 
-**LinkedIn:** [linkedin.com/in/shankarbaral1](https://linkedin.com/in/shankarbaral1)  
-**GitHub:** [github.com/shank078](https://github.com/shank078)
+**Shankar Baral** — Junior Cyber Security Analyst & IT Support Specialist
+Master of Information Technology (Cyber Security) · GPA 4.92 · Australian Permanent Resident · Canberra, ACT
 
-*Open to Junior SOC Analyst and Advanced IT Infrastructure roles in Australia.*
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-shankarbaral1-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/shankarbaral1)
+[![GitHub](https://img.shields.io/badge/GitHub-shank078-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/shank078)
+[![Email](https://img.shields.io/badge/Email-shankarbaral1@gmail.com-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:shankarbaral1@gmail.com)
 
+*Open to Junior SOC Analyst and Security Engineer opportunities in Australia.*
+
+---
+
+> *This lab was built to understand how real attackers think — not to simulate one. The most dangerous attacks don't need malware. They just need a misconfigured control and a head start.*
